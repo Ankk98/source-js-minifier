@@ -2,7 +2,7 @@ const jssoup = require("jssoup").default;
 const download = require("./downloadContent");
 
 async function extractJS(body) {
-
+    console.log('Extracting all the scripts present in the webpage & from the src links of scripts...');
     let soup = new jssoup(body);
     scripts = soup.findAll('script');
 
@@ -59,7 +59,7 @@ module.exports = extractJS;
 //     var string = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : undefined;
 
 //     var results = [];
-    
+
 //     // while(1){
 //     //     element = soup.find('script');
 //     //     if(element != ('' | null)){
@@ -68,7 +68,7 @@ module.exports = extractJS;
 //     //     else{
 //     //         break;
 //     //     }
-        
+
 //     // }
 
 //     var strainer = new SoupStrainer(name, attrs, string);
