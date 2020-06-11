@@ -1,4 +1,5 @@
 const program = require('commander');
+
 const app = require('./minify');
 
 program

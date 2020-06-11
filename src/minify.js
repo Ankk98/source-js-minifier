@@ -1,8 +1,10 @@
 const uglify = require("uglify-js");
 const fs = require("fs");
+const open = require('open');
+
 const extractJS = require("./extractScripts");
 const download = require("./downloadContent")
-const open = require('open');
+
 
 async function minify(scripts) {
     console.log('=> Minifying all the scripts...');
