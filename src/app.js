@@ -1,7 +1,6 @@
 const program = require('commander');
 
 const replaceScript = require('./replaceScriptsWithMinScripts');
-// import {app} from './replaceScriptsWithMinScripts';
 
 program
     .version('0.0.2')
