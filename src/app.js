@@ -1,9 +1,10 @@
 const program = require('commander');
 
-const app = require('./minify');
+const replaceScript = require('./replaceScriptsWithMinScripts');
+// import {app} from './replaceScriptsWithMinScripts';
 
 program
-    .version('0.0.1')
+    .version('0.0.2')
     .description('Source JS Minifier');
 
 program
@@ -11,7 +12,7 @@ program
     .alias('m')
     .description('Minify it\'s source JS')
     .action((url) => {
-        app(url);
+        replaceScript.app(url);
     });
 
 program.parse(process.argv);
