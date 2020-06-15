@@ -4,6 +4,7 @@ const download = require("./downloadContent");
 const uglify = require("uglify-js");
 const fs = require("fs");
 const open = require('open');
+const { assert } = require("console");
 
 function validateURL(url) {
     let pattern = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/;
@@ -18,13 +19,6 @@ function isRelativePath(url) {
     return result;
 }
 
-function SoupString(text, parent) {
-    this.parent = null;
-    this.previousElement = null;
-    this.nextElement = null;
-    this._text = text;
-}
-
 async function replaceScriptsWithMinScripts(source, url) {
     console.log('Replacing all the scripts present in the webpage & from the src links of scripts...');
 
@@ -32,11 +26,16 @@ async function replaceScriptsWithMinScripts(source, url) {
 
     let des = soup.descendants;
 
+    let scripts = {};
+    let count = 0;
+
     for (let i = 0; i < des.length; ++i) {
         if (des[i].constructor.name === 'SoupTag') {
             if (des[i].name === 'script') {
+                count++;
                 if (des[i].contents != [] && des[i].contents[0] != null && des[i].contents[0]['_text'] != null && des[i].contents[0]['_text'] != '') {
                     console.log('Minifying and replacing a script...');
+                    scripts[count+'.js'] = des[i].contents[0]['_text'];
                     let text = uglify.minify(des[i].contents[0]['_text'])['code'];
                     if (text) {
                         des[i].contents[0]['_text'] = text;
@@ -61,7 +60,7 @@ async function replaceScriptsWithMinScripts(source, url) {
                     }
                 }
             }
-            else if (des[i].name === 'img') { 
+            else if (des[i].name === 'img') {
                 if (des[i].attrs && des[i].attrs.src) {
                     if (!isRelativePath(des[i].attrs.src) && !validateURL(des[i].attrs.src)) {
                         des[i].attrs.src = url + des[i].attrs.src;
@@ -71,7 +70,7 @@ async function replaceScriptsWithMinScripts(source, url) {
                     }
                 }
             }
-            else if (des[i].name === 'form') { 
+            else if (des[i].name === 'form') {
                 if (des[i].attrs && des[i].attrs.action) {
                     if (!isRelativePath(des[i].attrs.action) && !validateURL(des[i].attrs.action)) {
                         des[i].attrs.action = url + des[i].attrs.action;
@@ -83,6 +82,28 @@ async function replaceScriptsWithMinScripts(source, url) {
             }
         }
     }
+
+    let minifiedScripts = uglify.minify(scripts)['code'];
+    // console.log(minifiedScripts);
+
+    let combined = '';
+    for (const key in scripts) {
+        if (scripts.hasOwnProperty(key)) {
+            combined += scripts[key];
+        }
+    }
+
+    try {
+        fs.writeFileSync('./output/combined.js', combined, () => {
+            console.log('=> Combined Source JS content of given URL saved at ./output/combined.js');
+        });
+        fs.writeFileSync('./output/combined.min.js', minifiedScripts, () => {
+            console.log('=> Combined & minified source js content of given URL saved at ./output/combined.min.js');
+        });
+    } catch (error) {
+        assert(error);
+    }
+
 
     let result = soup.prettify();
     return result;
@@ -103,32 +124,28 @@ async function app(url) {
     let source;
     try {
         source = await download(url);
+        fs.writeFile('./output/source.html', source, () => {
+            console.log('=> Source content of given URL saved at ./output/source.html');
+        });
     } catch (error) {
-        console.log(error);
-        return;
+        assert(error);
     }
-
-    fs.writeFile('./downloads/source.html', source, () => {
-        console.log('=> Source content of given URL saved at ./downloads/source.html');
-    });
 
     let newSource;
     try {
         newSource = await replaceScriptsWithMinScripts(source, url);
+        fs.writeFileSync('./output/newSource.html', newSource, () => {
+            console.log('=> Source JS code of given URL saved at ./output/newSource.html');
+        });
     } catch (error) {
-        throw error;
+        assert(error);
     }
-
-    fs.writeFileSync('./downloads/newSource.html', newSource, () => {
-        console.log('=> Source JS code of given URL saved at ./downloads/newSource.html');
-    });
 
     console.log('=> Opening the webpage into the default browser...');
     try {
-        await open('./downloads/newSource.html');
+        await open('./output/newSource.html');
     } catch (error) {
-        console.log(error);
-        return;
+        assert(error);
     }
 
     console.log('=> Processing Complete, take a look at the browser tab. Exiting.');
