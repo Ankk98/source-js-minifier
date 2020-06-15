@@ -17,14 +17,17 @@ Steps req:
 4. Code generation
 
 For more info: https://youtu.be/C06MohLG_3s 
+
+Visitor Pattern: provides ability to add new operations to existing object structures without 
+    modifying the structures.
 */
 
 const acorn = require('acorn');
 const walk = require('acorn-walk');
 const fs = require('fs');
+const astring = require('astring');
 
 const source = fs.readFileSync('./output/combined.js', { encoding: 'utf-8' });
-
 
 const ast = acorn.parse(source);
 let state = {};
@@ -35,4 +38,8 @@ walk.simple(ast, {
     }
 });
 
-console.log(ast);
+const output = astring.generate(ast);
+
+fs.writeFile('./output/customOutput.js', output, () => {
+    console.log(output);
+});
