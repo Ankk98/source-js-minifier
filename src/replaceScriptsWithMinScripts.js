@@ -5,6 +5,7 @@ const uglify = require("uglify-js");
 const fs = require("fs");
 const open = require('open');
 const { assert } = require("console");
+const { customMinifier } = require("./customMinifier");
 
 function validateURL(url) {
     let pattern = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/;
@@ -19,7 +20,7 @@ function isRelativePath(url) {
     return result;
 }
 
-async function replaceScriptsWithMinScripts(source, url) {
+async function replaceScriptsWithMinScripts(source, url, useCustomMinifier) {
     console.log('Replacing all the scripts present in the webpage & from the src links of scripts...');
 
     let soup = new jssoup(source);
@@ -35,8 +36,13 @@ async function replaceScriptsWithMinScripts(source, url) {
                 count++;
                 if (des[i].contents != [] && des[i].contents[0] != null && des[i].contents[0]['_text'] != null && des[i].contents[0]['_text'] != '') {
                     console.log('Minifying and replacing a script...');
-                    scripts[count+'.js'] = des[i].contents[0]['_text'];
-                    let text = uglify.minify(des[i].contents[0]['_text'])['code'];
+                    scripts[count + '.js'] = des[i].contents[0]['_text'];
+                    let text;
+                    if (useCustomMinifier) {
+                        text = customMinifier(des[i].contents[0]['_text']);
+                    } else {
+                        text = uglify.minify(des[i].contents[0]['_text'])['code'];
+                    }
                     if (text) {
                         des[i].contents[0]['_text'] = text;
                     } else {
@@ -109,7 +115,7 @@ async function replaceScriptsWithMinScripts(source, url) {
     return result;
 }
 
-async function app(url) {
+async function app(url, useCustomMinifier, performConcatenation) {
     console.log(`=> URL of source webpage provided: ${url}`);
 
     if (!validateURL(url)) {
@@ -133,7 +139,12 @@ async function app(url) {
 
     let newSource;
     try {
-        newSource = await replaceScriptsWithMinScripts(source, url);
+        if (performConcatenation) {
+
+        }
+        else {
+            newSource = await replaceScriptsWithMinScripts(source, url, useCustomMinifier);
+        }
         fs.writeFileSync('./output/newSource.html', newSource, () => {
             console.log('=> Source JS code of given URL saved at ./output/newSource.html');
         });
