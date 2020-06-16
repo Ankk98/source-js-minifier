@@ -1,11 +1,15 @@
 "use strict";
 const utils = require('parse5-utils');
 const download = require("./downloadContent");
-const isRelativePath = require('./isRelativePath');
-const validateURL = require('./validateURL');
+const { isRelativePath } = require('./isRelativePath');
+const { validateURL } = require('./validateURL');
+// const walk = require('./htmlASTTraverser');
+const { fixURL } = require('./fixURL');
+const { customMinifier } = require('./customMinifier');
+const uglify = require('uglify-js');
 
-// To traverse HTML AST
-async function walk(node, callback) {
+// To DFS traversal of HTML AST
+function walk(node, callback) {
     if (callback(node) === false) {
         return false;
     }
@@ -28,77 +32,181 @@ async function walk(node, callback) {
     }
 };
 
+// Traverse through all asset links and fix them if needed
+async function fixAssestLinks(source, url) {
+
+    const ast = utils.parse(source);
+
+    walk(ast, (node) => {
+        if (node.tagName === 'link' ||
+            node.tagName === 'a' ||
+            node.tagName === 'img' ||
+            node.tagName === 'form') {
+            // console.log(node);
+            for (let index = 0; index < node.attrs.length; index++) {
+                const attribute = node.attrs[index];
+                if (attribute && attribute.value) {
+                    if (attribute.name === 'href' ||
+                        attribute.name === 'src' ||
+                        attribute.name === 'action') {
+                        if (!isRelativePath(attribute.value) && !validateURL(attribute.value)) {
+                            attribute.value = url + attribute.value;
+                            utils.setAttribute(node, attribute.name, attribute.value);
+                        }
+                        else if (isRelativePath(attribute.value) === true) {
+                            attribute.value = 'https:' + attribute.value;
+                            utils.setAttribute(node, attribute.name, attribute.value);
+                        }
+                        // console.log(attribute);
+                    }
+                }
+            }
+            // console.log(node.attrs);
+        }
+    });
+
+    return utils.serialize(ast);
+}
+
+//To extract, concat, minify & attach scripts
+async function concatenateScripts(source, url, useCustomMinifier) {
+
+    //Fix asset links
+    source = await fixAssestLinks(source, url);
+
+    //Extract Scripts
+    let arr = await extractScripts(source);
+    let html = arr[0];
+    let concatenatedScripts = arr[1];
+    // console.log(html, concatenatedScripts);
+
+    // Minify
+    let minifiedScripts;
+    try {
+        if (useCustomMinifier) {
+            minifiedScripts = await customMinifier(concatenatedScripts);
+        } else {
+            minifiedScripts = uglify.minify(concatenatedScripts)['code'];
+        }
+    } catch (error) {
+        console.log(error);
+        assert(error);
+    }
+
+
+    // Convert into ast
+    const ast = utils.parse(html);
+
+    console.log(minifiedScripts);
+    //Attach Minified Script
+    // Add <script></script> to the end of body
+    walk(ast, (node) => {
+        if (node.nodeName === 'body') {
+            let newNode = utils.createNode('script');
+            newNode.childNodes.push(utils.createTextNode(minifiedScripts));
+            console.log(newNode);
+            node.childNodes.push(newNode);
+            return false;
+        }
+    });
+
+    // Convert to string of html
+    let resultantPage = utils.serialize(ast);
+
+    return resultantPage;
+}
+
+
 // Will extract all scripts & returns [htmlWithoutScripts, concatenatedScripts] 
-async function extractScripts() {
+async function extractScripts(source) {
 
     // walk to extract all the scripts
     let concatenatedScripts = '';
     let urls = [];
-    // let count = 0;
-    const ast = utils.parse('<!DOCTYPE html><html><head></head><body>Hi there!<p>hello<script src="https://www.google.com/"></script><b>mann</b></p><script>aveaveaw</script>bye</body></html>');
+    console.log(source);
+    const ast = utils.parse(source);
 
-    await walk(ast, async (node) => {
+    console.log(ast);
+
+    walk(ast, (node) => {
         if (node.nodeName === 'script') {
-            // count++;
-            if (node.childNodes != [] && node.childNodes[0] != null && node.childNodes[0]['value'] != null && node.childNodes[0]['value'] != '') {
+
+            if (node.childNodes != [] &&
+                node.childNodes[0] != null &&
+                node.childNodes[0]['value'] != null &&
+                node.childNodes[0]['value'] != '') {
                 // Extract scripts
                 console.log('Extracting a Script....');
-                // scripts[`${count}.js`] = node.childNodes[0]['value'];
                 concatenatedScripts += node.childNodes[0]['value'];
                 concatenatedScripts += '\n';
+                utils.remove(node);
             }
             else if (node.attrs && node.attrs[0] != null) {
                 //For all attributes find src
+                // console.log(node.attrs);
                 for (let index = 0; index < node.attrs.length; index++) {
                     // Get urls
                     const attribute = node.attrs[index];
                     if (attribute['name'] === 'src') {
-                        if (isRelativePath(attribute['value']) === true) {
-                            attribute['value'] = 'https:' + attribute['value'];
-                        }
-                        if (!validateURL(attribute['value'])) {
-                            throw new Error(`Invalid URL`);
-                        }
+                        // url = fixURL(attribute['value']);
                         urls.push(attribute['value']);
                     }
                 }
+                utils.remove(node);
             }
-            utils.remove(node);
         }
 
     });
 
+    // console.log(urls);
     // Download all scripts
-    for (let index = 0; index < urls.length; index++) {
-        // count++;
-        const url = urls[index];
+    for (let url of urls) {
+        // const url = urls[index];
         try {
-            // console.log(attribute['value']);
-            // scripts[`${count}.js`] = await download(url);
+            // url = fixURL(url);
             concatenatedScripts += await download(url);
             concatenatedScripts += '\n';
         } catch (error) {
+            console.log(error);
             throw error;
         }
     }
 
     const html = utils.serialize(ast);
-    console.log(html);
-    console.log(concatenatedScripts);
+    // console.log(html);
+    // console.log(concatenatedScripts);
 
     return [html, concatenatedScripts];
 }
 
-// async function abc() {
-//     await extractScripts();
-// }
-// abc();
-
-
 module.exports.extractScripts = extractScripts;
+module.exports.concatenateScripts = concatenateScripts;
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                        // if (isRelativePath(attribute['value']) === true) {
+                        //     attribute['value'] = 'https:' + attribute['value'];
+                        // }
+                        // if (!validateURL(attribute['value'])) {
+                        //     throw new Error(`Invalid URL`);
+                        // }
 // console.log(html);
-
 // console.log(ast.childNodes);
 // const parse5 = require('parse5');
 // console.log(utils.)
@@ -136,3 +244,9 @@ module.exports.extractScripts = extractScripts;
 // visit(ast, (node) => {
 //     console.log(node);
 // });
+// console.log(attribute['value']);
+            // scripts[`${count}.js`] = await download(url);
+            // count++;
+            // scripts[`${count}.js`] = node.childNodes[0]['value'];
+            // count++;
+    // let count = 0;
