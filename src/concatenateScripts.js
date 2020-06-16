@@ -4,9 +4,9 @@ const download = require("./downloadContent");
 const { isRelativePath } = require('./isRelativePath');
 const { validateURL } = require('./validateURL');
 // const walk = require('./htmlASTTraverser');
-const { fixURL } = require('./fixURL');
+const { fixRelativeURL } = require('./fixRelativeURL');
 const { customMinifier } = require('./customMinifier');
-const uglify = require('uglify-js');
+const UglifyJS = require('uglify-js');
 
 // To DFS traversal of HTML AST
 function walk(node, callback) {
@@ -33,15 +33,16 @@ function walk(node, callback) {
 };
 
 // Traverse through all asset links and fix them if needed
-async function fixAssestLinks(source, url) {
+async function fixAssetLinks(source, url) {
 
     const ast = utils.parse(source);
 
     walk(ast, (node) => {
-        if (node.tagName === 'link' ||
+        if ((node.tagName === 'link' ||
             node.tagName === 'a' ||
             node.tagName === 'img' ||
-            node.tagName === 'form') {
+            node.tagName === 'form') &&
+            node.attrs) {
             // console.log(node);
             for (let index = 0; index < node.attrs.length; index++) {
                 const attribute = node.attrs[index];
@@ -72,13 +73,13 @@ async function fixAssestLinks(source, url) {
 async function concatenateScripts(source, url, useCustomMinifier) {
 
     //Fix asset links
-    source = await fixAssestLinks(source, url);
+    source = await fixAssetLinks(source, url);
 
     //Extract Scripts
     let arr = await extractScripts(source);
     let html = arr[0];
     let concatenatedScripts = arr[1];
-    // console.log(html, concatenatedScripts);
+    console.log(concatenatedScripts);
 
     // Minify
     let minifiedScripts;
@@ -86,11 +87,10 @@ async function concatenateScripts(source, url, useCustomMinifier) {
         if (useCustomMinifier) {
             minifiedScripts = await customMinifier(concatenatedScripts);
         } else {
-            minifiedScripts = uglify.minify(concatenatedScripts)['code'];
+            minifiedScripts = UglifyJS.minify(concatenatedScripts)['code'];
         }
     } catch (error) {
         console.log(error);
-        assert(error);
     }
 
 
@@ -141,14 +141,14 @@ async function extractScripts(source) {
                 concatenatedScripts += '\n';
                 utils.remove(node);
             }
-            else if (node.attrs && node.attrs[0] != null) {
+            else if (node.attrs && node.attrs[0]) {
                 //For all attributes find src
                 // console.log(node.attrs);
                 for (let index = 0; index < node.attrs.length; index++) {
                     // Get urls
                     const attribute = node.attrs[index];
                     if (attribute['name'] === 'src') {
-                        // url = fixURL(attribute['value']);
+                        url = fixRelativeURL(attribute['value']);
                         urls.push(attribute['value']);
                     }
                 }
@@ -163,7 +163,7 @@ async function extractScripts(source) {
     for (let url of urls) {
         // const url = urls[index];
         try {
-            // url = fixURL(url);
+            url = fixRelativeURL(url);
             concatenatedScripts += await download(url);
             concatenatedScripts += '\n';
         } catch (error) {

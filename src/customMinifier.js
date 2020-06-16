@@ -4,11 +4,11 @@ An attempt to develop a custom js minifier.
 Functionalities to be developed:
 1. Remove whitespaces ---------------------- done
 2. Remove comments ------------------------- done
-3. Switch to shorthand syntax
+3. Switch to shorthand syntax -------------- done
 4. Resolve constant expressions ------------ done
-5. Concatenate/Bundle scripts 
-6. Rename identifiers etc 
-7. Remove unused variables & dead code
+5. Concatenate/Bundle scripts -------------- done 
+6. Rename identifiers etc TODO:
+7. Remove unused variables & dead code TODO:
 8. if else to terenary --------------------- done
 9. assignment operator --------------------- done
 
@@ -16,7 +16,7 @@ Steps req:
 1. Parsing js code in AST
 2. AST tree traversal using recursion
 3. For each node perform modifications using Visitor Pattern
-4. Code generation
+4. Code re-generation
 
 For exploring AST: https://astexplorer.net/ 
 For more info on using AST: https://youtu.be/C06MohLG_3s 
@@ -25,8 +25,8 @@ Visitor Pattern: provides ability to add new operations to existing object struc
     modifying the structures.
 */
 
-const fs = require('fs'); //filesystem
-const recast = require('recast'); // modifier
+const fs = require('fs'); // filesystem
+const recast = require('recast'); // ast modifier/transformer
 
 async function customMinifier(source) {
 
@@ -44,8 +44,10 @@ async function customMinifier(source) {
     const types = recast.types; // Types of nodes 
     const builder = types.builders; // Builders to build nodes
 
+    // Recurse through AST & perform operations in visitor pattern
     recast.visit(ast, {
         visitBinaryExpression(path) {
+            // Resolve constant binary operations
             let node = path.node;
             if (node.left &&
                 node.right &&
@@ -80,6 +82,7 @@ async function customMinifier(source) {
             this.traverse(path);
         },
         visitWhileStatement(path) {
+            // Convert while loop to for loop
             const node = path.node;
             if (node.test.type === 'Literal' &&
                 node.test.value === true) {
@@ -90,6 +93,7 @@ async function customMinifier(source) {
             this.traverse(path);
         },
         visitIfStatement(path) {
+            //Convert ifelse to terenary operator 
             const node = path.node;
             if (node.consequent.type === 'ExpressionStatement' &&
                 node.alternate.type === 'ExpressionStatement') {
@@ -101,6 +105,7 @@ async function customMinifier(source) {
             this.traverse(path);
         },
         visitExpressionStatement(path) {
+            //Convert to shorthand assignment operator
             const node = path.node.expression;
             if (node.type === 'AssignmentExpression' &&
                 node.operator === '=' &&
@@ -139,10 +144,46 @@ async function customMinifier(source) {
 
     const out = recast.print(ast).code;
 
-    return out;
+    // For removing whitespaces
+    const newAST = require('acorn').parse(out);
+    const output = astring.generate(newAST, {
+        indent: '',
+        lineEnd: '',
+    });
+
+    return output;
 }
 
 module.exports.customMinifier = customMinifier;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // For future reference:
 // const source = fs.readFileSync('./output/combined.js', { encoding: 'utf-8' });
