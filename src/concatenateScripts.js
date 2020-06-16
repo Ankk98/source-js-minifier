@@ -1,20 +1,10 @@
 "use strict";
 const utils = require('parse5-utils');
 const download = require("./downloadContent");
+const isRelativePath = require('./isRelativePath');
+const validateURL = require('./validateURL');
 
-function validateURL(url) {
-    let pattern = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/;
-    let regex = new RegExp(pattern);
-    return regex.test(url);
-}
-
-function isRelativePath(url) {
-    let pattern = /^\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/;
-    let regex2 = new RegExp(pattern);
-    let result = regex2.test(url);
-    return result;
-}
-
+// To traverse HTML AST
 async function walk(node, callback) {
     if (callback(node) === false) {
         return false;
@@ -38,63 +28,71 @@ async function walk(node, callback) {
     }
 };
 
+// Will extract all scripts & returns [htmlWithoutScripts, concatenatedScripts] 
 async function extractScripts() {
 
     // walk to extract all the scripts
-    let scripts = {};
-    let count = 0;
+    let concatenatedScripts = '';
+    let urls = [];
+    // let count = 0;
     const ast = utils.parse('<!DOCTYPE html><html><head></head><body>Hi there!<p>hello<script src="https://www.google.com/"></script><b>mann</b></p><script>aveaveaw</script>bye</body></html>');
 
     await walk(ast, async (node) => {
         if (node.nodeName === 'script') {
-            count++;
+            // count++;
             if (node.childNodes != [] && node.childNodes[0] != null && node.childNodes[0]['value'] != null && node.childNodes[0]['value'] != '') {
-                // extract scripts
+                // Extract scripts
                 console.log('Extracting a Script....');
-                scripts[`${count}.js`] = node.childNodes[0]['value'];
+                // scripts[`${count}.js`] = node.childNodes[0]['value'];
+                concatenatedScripts += node.childNodes[0]['value'];
+                concatenatedScripts += '\n';
             }
             else if (node.attrs && node.attrs[0] != null) {
-
+                //For all attributes find src
                 for (let index = 0; index < node.attrs.length; index++) {
+                    // Get urls
                     const attribute = node.attrs[index];
-                    // console.log(attribute['value']);
                     if (attribute['name'] === 'src') {
-                        // download scripts
-                        // console.log(attribute['value']);
                         if (isRelativePath(attribute['value']) === true) {
                             attribute['value'] = 'https:' + attribute['value'];
                         }
                         if (!validateURL(attribute['value'])) {
                             throw new Error(`Invalid URL`);
                         }
-
-                        try {
-                            // console.log(attribute['value']);
-                            const content = await download(attribute['value']);
-                            scripts[`${count}.js`] = content;
-                        } catch (error) {
-                            throw error;
-                        }
-                        // console.log(attribute['value']);
+                        urls.push(attribute['value']);
                     }
                 }
-                // node.attrs.forEach(async attribute => {
-
-                // });
             }
             utils.remove(node);
         }
 
     });
 
+    // Download all scripts
+    for (let index = 0; index < urls.length; index++) {
+        // count++;
+        const url = urls[index];
+        try {
+            // console.log(attribute['value']);
+            // scripts[`${count}.js`] = await download(url);
+            concatenatedScripts += await download(url);
+            concatenatedScripts += '\n';
+        } catch (error) {
+            throw error;
+        }
+    }
+
     const html = utils.serialize(ast);
     console.log(html);
-    console.log(scripts);
+    console.log(concatenatedScripts);
+
+    return [html, concatenatedScripts];
 }
 
-(async () => {
-    await extractScripts();
-})();
+// async function abc() {
+//     await extractScripts();
+// }
+// abc();
 
 
 module.exports.extractScripts = extractScripts;
