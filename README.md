@@ -1,5 +1,5 @@
 # Source JS Minifier [WIP]
-A CLI tool to download source code of a webpage from a URL, replace or concatenate its JS scripts with minified scripts & open the resultant webpage in browser.
+A CLI tool to download source code of a webpage from a URL, replace or concatenate its JS scripts with minified scripts & open the resultant webpage in browser. Implemented in NodeJS.
 [Demonstration Project]
 
 ### Install
@@ -11,7 +11,7 @@ From npm registry:
 
 1. Download source code
 2. `npm install` 
-3. Run Commands
+3. Run Command
 
 `node src/app.js minify <url>` 
 
@@ -24,8 +24,20 @@ From npm registry:
 Note: 
 
 * Files will be saved to `./output/` 
-* Requires nodeJS, npm
-* Dependencies: commander, node-fetch, uglify-js, open, acorn, astring, parse5-utils
+
+### Dependencies: 
+
+* Commander: CLI tool
+* Downloading files: node-fetch
+* JS Minifier: uglify-js
+* HTML Parser, manipulator, generator: parse5-utils
+* For cross platform file opening in browser: open
+
+For Custom Minifier:
+
+* JS Parser: acorn
+* JS manipulator: recast
+* JS Generator: astring
 
 ### Custom Minifier
 
@@ -53,6 +65,8 @@ Steps req:
 For exploring AST: https://astexplorer.net/ 
 
 For more info on using AST: https://youtu.be/C06MohLG_3s 
+
+Extremenly helpful guide on AST manipulation: https://lihautan.com/manipulating-ast-with-javascript/ 
 
 Note:
 

@@ -1,12 +1,10 @@
 const { isRelativePath } = require("./isRelativePath");
 
 function fixRelativeURL(url) {
-
-    // console.log(url);
+    // To add https: to the beginning of the url if not present
     if (isRelativePath(url) === true) {
         url = 'https:' + url;
     }
-    // console.log(url);
 
     return url;
 }

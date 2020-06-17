@@ -2,6 +2,7 @@ const program = require('commander');
 
 const minifier = require('./minifier');
 
+// CLI tool
 program
     .version('0.0.2')
     .description('Source JS Minifier');

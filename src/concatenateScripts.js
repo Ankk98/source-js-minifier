@@ -7,7 +7,7 @@ const { fixRelativeURL } = require('./fixRelativeURL');
 const { customMinifier } = require('./customMinifier');
 const UglifyJS = require('uglify-js');
 
-// To DFS traversal of HTML AST
+// For DFS traversal of HTML AST
 function walk(node, callback) {
     if (callback(node) === false) {
         return false;
@@ -31,7 +31,7 @@ function walk(node, callback) {
     }
 };
 
-// Traverse through all asset links and fix them if needed
+// Traverse through all asset links and fix them if required
 async function fixAssetLinks(source, url) {
 
     const ast = utils.parse(source);
@@ -42,7 +42,6 @@ async function fixAssetLinks(source, url) {
             node.tagName === 'img' ||
             node.tagName === 'form') &&
             node.attrs) {
-            // console.log(node);
             for (let index = 0; index < node.attrs.length; index++) {
                 const attribute = node.attrs[index];
                 if (attribute && attribute.value) {
@@ -50,18 +49,18 @@ async function fixAssetLinks(source, url) {
                         attribute.name === 'src' ||
                         attribute.name === 'action') {
                         if (!isRelativePath(attribute.value) && !validateURL(attribute.value)) {
+                            console.log(`Adding domain to url: ${attribute.value}`);
                             attribute.value = url + attribute.value;
                             utils.setAttribute(node, attribute.name, attribute.value);
                         }
                         else if (isRelativePath(attribute.value) === true) {
+                            console.log(`Adding https to url: ${attribute.value}`);
                             attribute.value = 'https:' + attribute.value;
                             utils.setAttribute(node, attribute.name, attribute.value);
                         }
-                        // console.log(attribute);
                     }
                 }
             }
-            // console.log(node.attrs);
         }
     });
 
@@ -71,7 +70,6 @@ async function fixAssetLinks(source, url) {
 //To extract, concat, minify & attach scripts
 async function concatenateScripts(source, url, useCustomMinifier) {
 
-    // console.log(source);
     //Fix asset links
     source = await fixAssetLinks(source, url);
 
@@ -79,7 +77,6 @@ async function concatenateScripts(source, url, useCustomMinifier) {
     let arr = await extractScripts(source);
     let html = arr[0];
     let concatenatedScripts = arr[1];
-    // console.log(concatenatedScripts);
 
     // Minify
     let minifiedScripts = '';
@@ -95,7 +92,6 @@ async function concatenateScripts(source, url, useCustomMinifier) {
             }
         } else {
             let result = UglifyJS.minify(concatenatedScripts);
-            // console.log(result.error);
             if (result.error) {
                 throw new Error(result.error);
             }
@@ -106,18 +102,15 @@ async function concatenateScripts(source, url, useCustomMinifier) {
         return;
     }
 
-
     // Convert into ast
     const ast = utils.parse(html);
 
-    // console.log(minifiedScripts);
     //Attach Minified Script
     // Add <script></script> to the end of body
     walk(ast, (node) => {
         if (node.nodeName === 'body') {
             let newNode = utils.createNode('script');
             newNode.childNodes.push(utils.createTextNode(minifiedScripts));
-            // console.log(newNode);
             node.childNodes.push(newNode);
             return false;
         }
@@ -125,24 +118,20 @@ async function concatenateScripts(source, url, useCustomMinifier) {
 
     // Convert to string of html
     let resultantPage = utils.serialize(ast);
-
     return resultantPage;
 }
 
 
-// Will extract all scripts & returns [htmlWithoutScripts, concatenatedScripts] 
+// Will extract all scripts & returns [htmlWithoutScripts, {name: concatenatedScripts}] 
 async function extractScripts(source) {
 
     // walk to extract all the scripts
-    // let concatenatedScripts = '';
     let concatenatedScripts = {};
     let count = 1;
     let urls = [];
-    // console.log(source);
     const ast = utils.parse(source);
 
-    // console.log(ast);
-
+    // DFS traversal
     walk(ast, (node) => {
         if (node.nodeName === 'script') {
 
@@ -154,9 +143,8 @@ async function extractScripts(source) {
                         element['value']) {
                         // Extract scripts
                         console.log('Extracting a Script....');
-                        // concatenatedScripts = concatenatedScripts.concat(element['value']);
-                        // concatenatedScripts = concatenatedScripts.concat('  \n');
                         concatenatedScripts[`${count}.js`] = element['value'];
+                        count++;
                     }
                 }
                 utils.remove(node);
@@ -180,98 +168,21 @@ async function extractScripts(source) {
 
     });
 
-    // console.log(urls);
     // Download all scripts
     for (let url of urls) {
-        // const url = urls[index];
         try {
             url = fixRelativeURL(url);
-            // concatenatedScripts = concatenatedScripts.concat(await download(url));
-            // concatenatedScripts = concatenatedScripts.concat('   \n');
             concatenatedScripts[`${count}.js`] = await download(url);
+            count++;
         } catch (error) {
             console.log(error);
-            throw error;
+            return;
         }
     }
 
-    // console.log(ast);
-    // console.log(concatenatedScripts);
     const html = utils.serialize(ast);
-    // console.log(html);
-
-
     return [html, concatenatedScripts];
 }
 
 module.exports.extractScripts = extractScripts;
 module.exports.concatenateScripts = concatenateScripts;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// const walk = require('./htmlASTTraverser');
-                        // if (isRelativePath(attribute['value']) === true) {
-                        //     attribute['value'] = 'https:' + attribute['value'];
-                        // }
-                        // if (!validateURL(attribute['value'])) {
-                        //     throw new Error(`Invalid URL`);
-                        // }
-// console.log(html);
-// console.log(ast.childNodes);
-// const parse5 = require('parse5');
-// console.log(utils.)
-// function visit(ast, callback) {
-//     function _visit(node, parent, key, index) {
-//         if (callback(node) === false) {
-//             return false;
-//         }
-//         callback(ast, parent, key, index);
-//         const keys = Object.keys(ast);
-//         for (let i = 0; i < keys.length; i++) {
-//             if (ast.childNodes) {
-//                 const child = ast.childNonode;
-//                 if (Array.isArray(child)) {
-//                     for (let j = 0; j < child.length; j++) {
-//                         _visit(child[j], node, key, j);
-//                     }
-//                 } else if (isNode(child)) {
-//                     _visit(child, node, key);
-//                 }
-//             }
-//         }
-//     }
-//     _visit(ast, null);
-// }
-
-// function isNode(node) {
-//     // probably need more check,
-//     // for example,
-//     // if the node contains certain properties
-//     return typeof node === 'object';
-// }
-
-
-// visit(ast, (node) => {
-//     console.log(node);
-// });
-// console.log(attribute['value']);
-            // scripts[`${count}.js`] = await download(url);
-            // count++;
-            // scripts[`${count}.js`] = node.childNodes[0]['value'];
-            // count++;
-    // let count = 0;
