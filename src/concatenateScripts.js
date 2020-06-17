@@ -82,10 +82,17 @@ async function concatenateScripts(source, url, useCustomMinifier) {
     // console.log(concatenatedScripts);
 
     // Minify
-    let minifiedScripts;
+    let minifiedScripts = '';
     try {
+        console.log('Minifying & concatenating scripts....');
         if (useCustomMinifier) {
-            minifiedScripts = await customMinifier(concatenatedScripts);
+            for (const key in concatenatedScripts) {
+                if (concatenatedScripts.hasOwnProperty(key)) {
+                    const text = concatenatedScripts[key];
+                    minifiedScripts = minifiedScripts.concat(await customMinifier(text));
+                    minifiedScripts = minifiedScripts.concat('  \n');
+                }
+            }
         } else {
             let result = UglifyJS.minify(concatenatedScripts);
             // console.log(result.error);
@@ -96,6 +103,7 @@ async function concatenateScripts(source, url, useCustomMinifier) {
         }
     } catch (error) {
         console.log(error);
+        return;
     }
 
 
@@ -126,7 +134,9 @@ async function concatenateScripts(source, url, useCustomMinifier) {
 async function extractScripts(source) {
 
     // walk to extract all the scripts
-    let concatenatedScripts = '';
+    // let concatenatedScripts = '';
+    let concatenatedScripts = {};
+    let count = 1;
     let urls = [];
     // console.log(source);
     const ast = utils.parse(source);
@@ -144,8 +154,9 @@ async function extractScripts(source) {
                         element['value']) {
                         // Extract scripts
                         console.log('Extracting a Script....');
-                        concatenatedScripts = concatenatedScripts.concat(element['value']);
-                        concatenatedScripts = concatenatedScripts.concat('  \n');
+                        // concatenatedScripts = concatenatedScripts.concat(element['value']);
+                        // concatenatedScripts = concatenatedScripts.concat('  \n');
+                        concatenatedScripts[`${count}.js`] = element['value'];
                     }
                 }
                 utils.remove(node);
@@ -175,8 +186,9 @@ async function extractScripts(source) {
         // const url = urls[index];
         try {
             url = fixRelativeURL(url);
-            concatenatedScripts = concatenatedScripts.concat(await download(url));
-            concatenatedScripts = concatenatedScripts.concat('   \n');
+            // concatenatedScripts = concatenatedScripts.concat(await download(url));
+            // concatenatedScripts = concatenatedScripts.concat('   \n');
+            concatenatedScripts[`${count}.js`] = await download(url);
         } catch (error) {
             console.log(error);
             throw error;

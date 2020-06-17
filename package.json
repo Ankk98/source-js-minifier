@@ -1,6 +1,6 @@
 {
   "name": "source-js-minifier",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A CLI tool to download source of webpage and replace its JS code and files with minified ones.",
   "main": "src/app.js",
   "scripts": {
@@ -18,14 +18,10 @@
   "homepage": "https://github.com/Ankk98/source-js-minifier#readme",
   "dependencies": {
     "acorn": "^7.3.1",
-    "acorn-walk": "^7.1.1",
     "astring": "^1.4.3",
     "commander": "^5.1.0",
-    "eslint": "^7.2.0",
-    "jssoup": "0.0.11",
     "node-fetch": "^2.6.0",
     "open": "^7.0.4",
-    "parse5": "^6.0.0",
     "parse5-utils": "^2.0.0",
     "recast": "^0.19.1",
     "uglify-js": "^3.9.4"
