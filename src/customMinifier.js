@@ -27,6 +27,7 @@ Visitor Pattern: provides ability to add new operations to existing object struc
 
 const fs = require('fs'); // filesystem
 const recast = require('recast'); // ast modifier/transformer
+const astring = require('astring'); //generator
 
 async function customMinifier(source) {
 
@@ -95,7 +96,9 @@ async function customMinifier(source) {
         visitIfStatement(path) {
             //Convert ifelse to terenary operator 
             const node = path.node;
-            if (node.consequent.type === 'ExpressionStatement' &&
+            if (node.consequent &&
+                node.alternate &&
+                node.consequent.type === 'ExpressionStatement' &&
                 node.alternate.type === 'ExpressionStatement') {
                 let newNode = builder.expressionStatement(builder.conditionalExpression(node.test,
                     node.consequent.expression, node.alternate.expression));

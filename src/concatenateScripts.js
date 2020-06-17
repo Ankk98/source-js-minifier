@@ -3,7 +3,6 @@ const utils = require('parse5-utils');
 const download = require("./downloadContent");
 const { isRelativePath } = require('./isRelativePath');
 const { validateURL } = require('./validateURL');
-// const walk = require('./htmlASTTraverser');
 const { fixRelativeURL } = require('./fixRelativeURL');
 const { customMinifier } = require('./customMinifier');
 const UglifyJS = require('uglify-js');
@@ -72,6 +71,7 @@ async function fixAssetLinks(source, url) {
 //To extract, concat, minify & attach scripts
 async function concatenateScripts(source, url, useCustomMinifier) {
 
+    // console.log(source);
     //Fix asset links
     source = await fixAssetLinks(source, url);
 
@@ -79,7 +79,7 @@ async function concatenateScripts(source, url, useCustomMinifier) {
     let arr = await extractScripts(source);
     let html = arr[0];
     let concatenatedScripts = arr[1];
-    console.log(concatenatedScripts);
+    // console.log(concatenatedScripts);
 
     // Minify
     let minifiedScripts;
@@ -87,7 +87,12 @@ async function concatenateScripts(source, url, useCustomMinifier) {
         if (useCustomMinifier) {
             minifiedScripts = await customMinifier(concatenatedScripts);
         } else {
-            minifiedScripts = UglifyJS.minify(concatenatedScripts)['code'];
+            let result = UglifyJS.minify(concatenatedScripts);
+            // console.log(result.error);
+            if (result.error) {
+                throw new Error(result.error);
+            }
+            minifiedScripts = result['code'];
         }
     } catch (error) {
         console.log(error);
@@ -97,14 +102,14 @@ async function concatenateScripts(source, url, useCustomMinifier) {
     // Convert into ast
     const ast = utils.parse(html);
 
-    console.log(minifiedScripts);
+    // console.log(minifiedScripts);
     //Attach Minified Script
     // Add <script></script> to the end of body
     walk(ast, (node) => {
         if (node.nodeName === 'body') {
             let newNode = utils.createNode('script');
             newNode.childNodes.push(utils.createTextNode(minifiedScripts));
-            console.log(newNode);
+            // console.log(newNode);
             node.childNodes.push(newNode);
             return false;
         }
@@ -123,33 +128,39 @@ async function extractScripts(source) {
     // walk to extract all the scripts
     let concatenatedScripts = '';
     let urls = [];
-    console.log(source);
+    // console.log(source);
     const ast = utils.parse(source);
 
-    console.log(ast);
+    // console.log(ast);
 
     walk(ast, (node) => {
         if (node.nodeName === 'script') {
 
-            if (node.childNodes != [] &&
-                node.childNodes[0] != null &&
-                node.childNodes[0]['value'] != null &&
-                node.childNodes[0]['value'] != '') {
-                // Extract scripts
-                console.log('Extracting a Script....');
-                concatenatedScripts += node.childNodes[0]['value'];
-                concatenatedScripts += '\n';
+            if (node.childNodes != []) {
+                for (let index = 0; index < node.childNodes.length; index++) {
+                    const element = node.childNodes[index];
+                    if (element &&
+                        element['nodeName'] === '#text' &&
+                        element['value']) {
+                        // Extract scripts
+                        console.log('Extracting a Script....');
+                        concatenatedScripts = concatenatedScripts.concat(element['value']);
+                        concatenatedScripts = concatenatedScripts.concat('  \n');
+                    }
+                }
                 utils.remove(node);
             }
-            else if (node.attrs && node.attrs[0]) {
+            if (node.attrs && node.attrs.length > 0) {
                 //For all attributes find src
-                // console.log(node.attrs);
+                console.log('Checking script tags....');
                 for (let index = 0; index < node.attrs.length; index++) {
                     // Get urls
                     const attribute = node.attrs[index];
-                    if (attribute['name'] === 'src') {
-                        url = fixRelativeURL(attribute['value']);
-                        urls.push(attribute['value']);
+                    if (attribute['name'] === 'src' &&
+                        attribute['value']) {
+                        console.log('Extracting a script URL....');
+                        let currUrl = fixRelativeURL(attribute['value']);
+                        urls.push(currUrl);
                     }
                 }
                 utils.remove(node);
@@ -164,17 +175,19 @@ async function extractScripts(source) {
         // const url = urls[index];
         try {
             url = fixRelativeURL(url);
-            concatenatedScripts += await download(url);
-            concatenatedScripts += '\n';
+            concatenatedScripts = concatenatedScripts.concat(await download(url));
+            concatenatedScripts = concatenatedScripts.concat('   \n');
         } catch (error) {
             console.log(error);
             throw error;
         }
     }
 
+    // console.log(ast);
+    // console.log(concatenatedScripts);
     const html = utils.serialize(ast);
     // console.log(html);
-    // console.log(concatenatedScripts);
+
 
     return [html, concatenatedScripts];
 }
@@ -199,7 +212,7 @@ module.exports.concatenateScripts = concatenateScripts;
 
 
 
-
+// const walk = require('./htmlASTTraverser');
                         // if (isRelativePath(attribute['value']) === true) {
                         //     attribute['value'] = 'https:' + attribute['value'];
                         // }

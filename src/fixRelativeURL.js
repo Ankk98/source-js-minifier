@@ -1,10 +1,12 @@
 const { isRelativePath } = require("./isRelativePath");
 
-async function fixRelativeURL(url) {
+function fixRelativeURL(url) {
 
+    // console.log(url);
     if (isRelativePath(url) === true) {
         url = 'https:' + url;
     }
+    // console.log(url);
 
     return url;
 }

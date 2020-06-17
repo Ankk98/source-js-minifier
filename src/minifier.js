@@ -6,6 +6,7 @@ const { assert } = require("console");
 const { concatenateScripts } = require("./concatenateScripts");
 const { replaceScriptsWithMinScripts } = require("./replaceScripts");
 const { fixRelativeURL } = require("./fixRelativeURL");
+const { validateURL } = require("./validateURL");
 
 // Main function
 async function minifier(url, useCustomMinifier, performConcatenation) {
@@ -41,15 +42,20 @@ async function minifier(url, useCustomMinifier, performConcatenation) {
             //replace with minify scripts
             newSource = await replaceScriptsWithMinScripts(source, url, useCustomMinifier);
         }
-
-        // Save new file
-        fs.writeFileSync('./output/newSource.html', newSource, () => {
-            console.log('=> Source JS code of given URL saved at ./output/newSource.html');
-        });
+        // console.log(newSource);
     } catch (error) {
         console.log(error);
         assert(error);
         // return;
+    }
+
+    try {
+        // Save new file
+        fs.writeFileSync('./output/newSource.html', newSource);
+        console.log('=> Source JS code of given URL saved at ./output/newSource.html');
+    } catch (error) {
+        console.log(error);
+        return;
     }
 
     console.log('=> Opening the webpage into the default browser...');

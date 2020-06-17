@@ -82,33 +82,37 @@ async function replaceScriptsWithMinScripts(source, url, useCustomMinifier) {
     walk(ast, async (node) => {
         if (node.nodeName === 'script') {
 
-            if (node.childNodes != [] &&
-                node.childNodes[0] != null &&
-                node.childNodes[0]['value'] != null &&
-                node.childNodes[0]['value'] != '') {
+            if (node.childNodes != []) {
+                for (let index = 0; index < node.childNodes.length; index++) {
+                    const element = node.childNodes[index];
+                    if (element &&
+                        element['nodeName'] === '#text' &&
+                        element['value']) {
 
-                console.log('Replacing a Script....');
+                        console.log('Replacing a Script....');
 
-                // minify
-                let minifiedScript;
-                try {
-                    if (useCustomMinifier) {
-                        minifiedScript = await customMinifier(node.childNodes[0]['value']);
-                    } else {
-                        let result = UglifyJS.minify(node.childNodes[0]['value']);
-                        if (result.error) {
-                            throw new Error(result.error);
+                        // minify
+                        let minifiedScript;
+                        try {
+                            if (useCustomMinifier) {
+                                minifiedScript = await customMinifier(element['value']);
+                            } else {
+                                let result = UglifyJS.minify(element['value']);
+                                if (result.error) {
+                                    throw new Error(result.error);
+                                }
+                                minifiedScript = result['code'];
+                            }
+                        } catch (error) {
+                            console.log(error);
                         }
-                        minifiedScript = result['code'];
+
+                        // replace
+                        // node.childNodes[0]['value'] = minifiedScript;
+                        utils.setText(node, minifiedScript);
+
                     }
-                } catch (error) {
-                    console.log(error);
                 }
-
-                // replace
-                // node.childNodes[0]['value'] = minifiedScript;
-                utils.setText(node, minifiedScript);
-
             }
             else if (node.attrs && node.attrs[0]) {
                 //For all attributes find src
