@@ -43,7 +43,6 @@ async function fixAssetLinks(source, url) {
             node.tagName === 'img' ||
             node.tagName === 'form') &&
             node.attrs) {
-            // console.log(node);
             for (let index = 0; index < node.attrs.length; index++) {
                 const attribute = node.attrs[index];
                 if (attribute && attribute.value) {
@@ -61,11 +60,9 @@ async function fixAssetLinks(source, url) {
                             attribute.value = 'https:' + attribute.value;
                             utils.setAttribute(node, attribute.name, attribute.value);
                         }
-                        // console.log(attribute);
                     }
                 }
             }
-            // console.log(node.attrs);
         }
     });
 
@@ -87,89 +84,96 @@ async function replaceScriptsWithMinScripts(source, url, useCustomMinifier) {
     // traverse ast 
     walk(ast, async (node) => {
         if (node.nodeName === 'script') {
-
-            if (node.childNodes != []) {
-                for (let index = 0; index < node.childNodes.length; index++) {
-                    const element = node.childNodes[index];
-                    if (element &&
-                        element['nodeName'] === '#text' &&
-                        element['value']) {
-
-                        console.log('Replacing a Script....');
-
-                        // minify
-                        let minifiedScript;
-                        try {
-                            if (useCustomMinifier) {
-                                minifiedScript = await customMinifier(element['value']);
-                            } else {
-                                let result = Terser.minify(element['value']);
-                                if (result.error) {
-                                    throw new Error(result.error);
-                                }
-                                minifiedScript = result['code'];
-                            }
-                        } catch (error) {
-                            console.log(error);
-                        }
-
-                        // replace
-                        // node.childNodes[0]['value'] = minifiedScript;
-                        utils.setText(node, minifiedScript);
-
-                    }
+            let currType = 'application/javascript';
+            for (let index = 0; index < node.attrs.length; index++) {
+                const attribute = node.attrs[index];
+                if (attribute.name === 'type') {
+                    currType = attribute.value;
+                    break;
                 }
             }
-            else if (node.attrs && node.attrs[0]) {
-                //For all attributes find src
-                console.log('Extracting URL of a script....');
-                let script;
-                let minifiedScript;
-                let currUrl;
-                for (let index = 0; index < node.attrs.length; index++) {
-                    // Get url
-                    const attribute = node.attrs[index];
-                    if (attribute['name'] === 'src' &&
-                        attribute['value']) {
-                        currUrl = fixRelativeURL(attribute['value']);
-                        break;
-                    }
-                }
+            if (currType === 'application/javascript') {
+                if (node.childNodes != []) {
+                    for (let index = 0; index < node.childNodes.length; index++) {
+                        const element = node.childNodes[index];
+                        if (element &&
+                            element['nodeName'] === '#text' &&
+                            element['value']) {
 
-                if (!currUrl) {
-                    return;
-                }
+                            console.log('Replacing a Script....');
 
-                // download
-                try {
-                    currUrl = fixRelativeURL(currUrl);
-                    script = await download(currUrl);
-                } catch (error) {
-                    console.log(error);
-                    return;
-                }
+                            // minify
+                            let minifiedScript;
+                            try {
+                                if (useCustomMinifier) {
+                                    minifiedScript = await customMinifier(element['value']);
+                                } else {
+                                    let result = Terser.minify(element['value']);
+                                    if (result.error) {
+                                        throw new Error(result.error);
+                                    }
+                                    minifiedScript = result['code'];
+                                }
+                            } catch (error) {
+                                console.log(error);
+                            }
 
-                //minify
-                console.log('Minifying script ....');
-                try {
-                    if (useCustomMinifier) {
-                        minifiedScript = await customMinifier(script);
-                    } else {
-                        let result = Terser.minify(script);
-                        if (result.error) {
-                            throw new Error(result.error);
+                            // replace
+                            utils.setText(node, minifiedScript);
+
                         }
-                        minifiedScript = result['code'];
                     }
-                } catch (error) {
-                    console.log(error);
                 }
+                else if (node.attrs && node.attrs[0]) {
+                    //For all attributes find src
+                    console.log('Extracting URL of a script....');
+                    let script;
+                    let minifiedScript;
+                    let currUrl;
+                    for (let index = 0; index < node.attrs.length; index++) {
+                        // Get url
+                        const attribute = node.attrs[index];
+                        if (attribute['name'] === 'src' &&
+                            attribute['value']) {
+                            currUrl = fixRelativeURL(attribute['value']);
+                            break;
+                        }
+                    }
 
-                // replace
-                console.log('Replacing script...');
-                node.attrs = [];
-                node.childNodes.push(utils.createTextNode(minifiedScript));
-                // utils.remove(node);
+                    if (!currUrl) {
+                        return;
+                    }
+
+                    // download
+                    try {
+                        currUrl = fixRelativeURL(currUrl);
+                        script = await download(currUrl);
+                    } catch (error) {
+                        console.log(error);
+                        return;
+                    }
+
+                    //minify
+                    console.log('Minifying script ....');
+                    try {
+                        if (useCustomMinifier) {
+                            minifiedScript = await customMinifier(script);
+                        } else {
+                            let result = Terser.minify(script);
+                            if (result.error) {
+                                throw new Error(result.error);
+                            }
+                            minifiedScript = result['code'];
+                        }
+                    } catch (error) {
+                        console.log(error);
+                    }
+
+                    // replace
+                    console.log('Replacing script...');
+                    node.attrs = [];
+                    node.childNodes.push(utils.createTextNode(minifiedScript));
+                }
             }
         }
 

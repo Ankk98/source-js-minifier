@@ -7,7 +7,6 @@ const { fixRelativeURL } = require('./fixRelativeURL');
 const { customMinifier } = require('./customMinifier');
 const Terser = require('terser');
 const { minifyCSS } = require('./minifyCSS');
-// const asyncLib = require('async');
 
 // For DFS traversal of HTML AST
 function walk(node, callback) {
@@ -110,7 +109,7 @@ async function concatenateScripts(source, url, useCustomMinifier) {
     // Convert into ast
     const ast = utils.parse(html);
 
-    //Attach Minified Script
+    // Attach Minified Script
     // Add <script></script> to the end of body
     walk(ast, (node) => {
         if (node.nodeName === 'body') {
@@ -139,55 +138,61 @@ async function extractScripts(source) {
     // DFS traversal
     walk(ast, async (node) => {
         if (node.nodeName === 'script') {
-
-            if (node.childNodes != []) {
-                // console.log(node);
-                for (let index = 0; index < node.childNodes.length; index++) {
-                    const element = node.childNodes[index];
-                    if (element &&
-                        element['nodeName'] === '#text' &&
-                        element['value']) {
-                        // Extract scripts
-                        console.log('Extracting a Script....');
-                        let name = `${count}.js`;
-                        concatenatedScripts[name] = element['value'];
-                        count++;
-                    }
+            let currType = 'application/javascript';
+            for (let index = 0; index < node.attrs.length; index++) {
+                const attribute = node.attrs[index];
+                if (attribute.name === 'type') {
+                    currType = attribute.value;
+                    break;
                 }
-                utils.remove(node);
             }
-            else if (node.attrs && node.attrs.length > 0) {
-                //For all attributes find src
-                console.log('Checking script tags....');
-
-                let currUrl;
-                for (let index = 0; index < node.attrs.length; index++) {
-                    // Get urls
-                    const attribute = node.attrs[index];
-                    if (attribute['name'] === 'src' &&
-                        attribute['value']) {
-                        console.log('Extracting a script URL....');
-                        currUrl = fixRelativeURL(attribute['value']);
-                        break;
-                        // Download content
-                        // urls.push(currUrl);
+            if (currType === 'application/javascript') {
+                if (node.childNodes != []) {
+                    for (let index = 0; index < node.childNodes.length; index++) {
+                        const element = node.childNodes[index];
+                        if (element &&
+                            element['nodeName'] === '#text' &&
+                            element['value']) {
+                            // Extract scripts
+                            console.log('Extracting a Script....');
+                            let name = `${count}.js`;
+                            concatenatedScripts[name] = element['value'];
+                            count++;
+                        }
                     }
+                    utils.remove(node);
                 }
-                if (!currUrl) {
-                    return;
-                }
+                else if (node.attrs && node.attrs.length > 0) {
+                    // For all attributes find src
+                    console.log('Checking script tags....');
 
-                try {
-                    currUrl = fixRelativeURL(currUrl);
-                    let name = `${count}.js`;
-                    concatenatedScripts[name] = await download(currUrl);
-                    count++;
-                } catch (error) {
-                    console.log(error);
-                    return;
-                }
+                    let currUrl;
+                    for (let index = 0; index < node.attrs.length; index++) {
+                        // Get urls
+                        const attribute = node.attrs[index];
+                        if (attribute['name'] === 'src' &&
+                            attribute['value']) {
+                            console.log('Extracting a script URL....');
+                            currUrl = fixRelativeURL(attribute['value']);
+                            break;
+                        }
+                    }
+                    if (!currUrl) {
+                        return;
+                    }
 
-                utils.remove(node);
+                    try {
+                        currUrl = fixRelativeURL(currUrl);
+                        let name = `${count}.js`;
+                        concatenatedScripts[name] = await download(currUrl);
+                        count++;
+                    } catch (error) {
+                        console.log(error);
+                        return;
+                    }
+
+                    utils.remove(node);
+                }
             }
         }
 

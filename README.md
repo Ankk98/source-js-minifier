@@ -1,6 +1,7 @@
 # Source JS Minifier [WIP]
-A CLI tool to download source code of a webpage from a URL, replace or concatenate its JS scripts with minified scripts & minifies the css content in-place & opens the resultant webpage in browser. Implemented in NodeJS.
-[Demonstration Project]
+A CLI tool to download source code of a webpage from a URL(validated), then fix relative URLs, then minify the css stylesheets in-place, then replace in-place or concatenate its JS scripts with the minified script, & then open the resultant webpage in browser. 
+
+Implemented in NodeJS. [Demonstration Project]
 
 ### Install
 
@@ -10,14 +11,14 @@ From npm registry:
 ### Run locally
 
 1. Download source code
-2. `npm install` 
+2. `npm install` from repo 
 3. Run Command
 
 `node src/app.js minify <url>` 
 
-`node src/app.js minify <url> --custom` => To use custom minifier
+`node src/app.js minify <url> --custom` => To use custom js minifier
 
-`node src/app.js minify <url> --concatenate` => To concatenate all scripts (including downloaded) into one & attach minified version at the end of html body
+`node src/app.js minify <url> --concatenate` => To concatenate all js scripts (including downloaded) into one & attach minified version at the end of html body.
 
 `node src/app.js minify <url> --custom --concatenate` => Use both together
 
@@ -32,6 +33,7 @@ Note:
 * JS Minifier: terser
 * HTML Parser, manipulator, generator: parse5-utils
 * For cross platform file opening in browser: open
+* CSS minifier: clean-css
 
 For Custom Minifier:
 
@@ -70,13 +72,13 @@ Extremenly helpful guide on AST manipulation: https://lihautan.com/manipulating-
 
 Note:
 
-Concepts Required: Abstract Syntax Trees of HTML & JS, DFS traversal, Visitor Pattern, Synchronous code in NodeJS
+* Concepts Required: Abstract Syntax Trees of HTML & JS, DFS traversal, Visitor Pattern, Synchronous code in NodeJS
+* AST has been extensively used because it best server the purpose.
 
 ### TODOs
 
 1. Final complete Readme, Documentation
 2. Static type check, Lint, Comments, Best practices/conventions, Logging 
 3. Write tests / unit tests
-4. More optimizations in custom Minifier
-5. Cleanup & more refactor
-6. Refactor accordingly
+4. More optimizations in Custom Minifier
+5. Refactor

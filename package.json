@@ -1,6 +1,6 @@
 {
   "name": "source-js-minifier",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "A CLI tool to download source of webpage and replace its JS code and files with minified ones.",
   "main": "src/app.js",
   "scripts": {

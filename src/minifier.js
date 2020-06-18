@@ -35,13 +35,12 @@ async function minifier(url, useCustomMinifier, performConcatenation) {
     let newSource;
     try {
         if (performConcatenation) {
-            //concatenate scripts, minify & attach
+            // concatenate scripts, minify & attach
             newSource = await concatenateScripts(source, url, useCustomMinifier);
         } else {
-            //replace with minify scripts
+            // replace with minify scripts
             newSource = await replaceScriptsWithMinScripts(source, url, useCustomMinifier);
         }
-        // console.log(newSource);
     } catch (error) {
         console.log(error);
         return;

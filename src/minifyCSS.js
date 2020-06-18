@@ -5,7 +5,7 @@ Inside head:
 External Example: <link rel="stylesheet" type="text/css" href="mystyle.css">
 Internal example: <style></style>
 
-Inline css:
+Inline css: 
 In each tags
 */
 
@@ -65,15 +65,10 @@ async function minifyCSS(source) {
                     let content;
                     try {
                         content = await download(attribute.value);
-                        // console.log(content);
                     } catch (error) {
                         console.log(error);
                         return;
                     }
-
-                    // Concatenate style sheets
-                    // concatenatedStyleSheets = concatenatedStyleSheets.concat(content);
-                    // concatenatedStyleSheets = concatenatedStyleSheets.concat("    ");
 
                     // Minify css
                     let options = {};
@@ -81,6 +76,7 @@ async function minifyCSS(source) {
 
                     // Create new node
                     let newNode = utils.createNode('style');
+                    newNode.childNodes = [];
                     newNode.childNodes.push(utils.createTextNode(minifiedStyleSheet));
 
                     // Replace node
@@ -99,15 +95,7 @@ async function minifyCSS(source) {
                     child.value) {
                     console.log('Getting contents a of CSS style sheet......');
 
-                    // // Concatenate style sheets
-                    // concatenatedStyleSheets = concatenatedStyleSheets.concat(child.value);
-                    // concatenatedStyleSheets = concatenatedStyleSheets.concat("    ");
-
-                    // Change node type
-                    // utils.remove(node);
-
                     // Minify css
-                    // let options = {};
                     let minifiedStyleSheet = new CleanCSS().minify(child.value).styles;
 
                     // Replace content
@@ -117,21 +105,6 @@ async function minifyCSS(source) {
 
         }
     });
-
-    // // Minify contents
-    // let options = {};
-    // let minifiedStyleSheets = new CleanCSS(options).minify(concatenatedStyleSheets);
-
-
-    // // Traverse ast to insert a style node at the end of head tag
-    // walk(ast, async (node) => {
-    //     if (node.tagName === 'head') {
-    //         let newNode = utils.createNode('style');
-    //         newNode.childNodes.push(utils.createTextNode(minifiedStyleSheets));
-    //         node.childNodes.push(newNode);
-    //         return false;
-    //     }
-    // });
 
     // return html in string format
     let newSource = utils.serialize(ast);
