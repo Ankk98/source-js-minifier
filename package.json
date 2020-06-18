@@ -1,7 +1,7 @@
 {
   "name": "source-js-minifier",
-  "version": "0.0.3",
-  "description": "A CLI tool to download source of webpage and replace its JS code and files with minified ones.",
+  "version": "0.0.4",
+  "description": "A CLI tool to download source code of a webpage from a URL(validated), then fix relative URLs, then minify the css stylesheets in-place, then replace in-place or concatenate its JS scripts with the minified script, & then open the resultant webpage in browser. Implemented in NodeJS. [Demonstration Project]",
   "main": "src/app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -17,9 +17,7 @@
   },
   "homepage": "https://github.com/Ankk98/source-js-minifier#readme",
   "dependencies": {
-    "acorn": "^7.3.1",
     "astring": "^1.4.3",
-    "async": "^3.2.0",
     "clean-css": "^4.2.3",
     "commander": "^5.1.0",
     "node-fetch": "^2.6.0",

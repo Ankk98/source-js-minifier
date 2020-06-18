@@ -69,13 +69,19 @@ async function fixAssetLinks(source, url) {
 }
 
 //To extract, concat, minify & attach scripts
-async function concatenateScripts(source, url, useCustomMinifier) {
+async function concatenateScripts(source, url, useCustomMinifier, doMinifyCSS) {
 
     //Fix asset links
     source = await fixAssetLinks(source, url);
 
     // Minify CSS
-    source = await minifyCSS(source);
+    try {
+        if(doMinifyCSS){
+            source = await minifyCSS(source);
+        }    
+    } catch (error) {
+        console.error(error);
+    }
 
     //Extract Scripts
     let arr = await extractScripts(source);
@@ -102,7 +108,7 @@ async function concatenateScripts(source, url, useCustomMinifier) {
             minifiedScripts = result['code'];
         }
     } catch (error) {
-        console.log(error);
+        console.error(error);
         return;
     }
 
@@ -187,7 +193,7 @@ async function extractScripts(source) {
                         concatenatedScripts[name] = await download(currUrl);
                         count++;
                     } catch (error) {
-                        console.log(error);
+                        console.error(error);
                         return;
                     }
 

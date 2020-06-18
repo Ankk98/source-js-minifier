@@ -33,13 +33,7 @@ async function customMinifier(source) {
 
     console.log('Using Custom JS Minifier!');
 
-    const ast = recast.parse(source, {
-        parser: {
-            parse(source) {
-                return require('acorn').parse(source); // tokenizer & parser
-            }
-        }
-    });
+    const ast = recast.parse(source); // uses esprima for tokenization & parsing
 
 
     const types = recast.types; // Types of nodes 
@@ -148,7 +142,7 @@ async function customMinifier(source) {
     const out = recast.print(ast).code;
 
     // For removing whitespaces
-    const newAST = require('acorn').parse(out);
+    const newAST = require('esprima').parseScript(out);
     const output = astring.generate(newAST, {
         indent: '',
         lineEnd: '',

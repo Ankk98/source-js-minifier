@@ -8,7 +8,7 @@ const { fixRelativeURL } = require("./fixRelativeURL");
 const { validateURL } = require("./validateURL");
 
 // Main function
-async function minifier(url, useCustomMinifier, performConcatenation) {
+async function minifier(url, useCustomMinifier, performConcatenation, doMinifyCSS) {
 
     console.log(`=> URL of source webpage provided: ${url}`);
 
@@ -20,10 +20,13 @@ async function minifier(url, useCustomMinifier, performConcatenation) {
             return;
         }
 
-        url = fixRelativeURL(url);
+        url = fixRelativeURL(url); // check & fix url
 
-        //Download & save contents of webpage
+        // Download & save contents of webpage
         source = await download(url);
+        if (!fs.existsSync('./output')) {
+            fs.mkdirSync('./output'); // create output folder if not already present
+        }
         fs.writeFile('./output/source.html', source, () => {
             console.log('=> Source content of given URL saved at ./output/source.html');
         });
@@ -36,13 +39,13 @@ async function minifier(url, useCustomMinifier, performConcatenation) {
     try {
         if (performConcatenation) {
             // concatenate scripts, minify & attach
-            newSource = await concatenateScripts(source, url, useCustomMinifier);
+            newSource = await concatenateScripts(source, url, useCustomMinifier, doMinifyCSS);
         } else {
             // replace with minify scripts
-            newSource = await replaceScriptsWithMinScripts(source, url, useCustomMinifier);
+            newSource = await replaceScriptsWithMinScripts(source, url, useCustomMinifier, doMinifyCSS);
         }
     } catch (error) {
-        console.log(error);
+        console.error(error);
         return;
     }
 
@@ -51,7 +54,7 @@ async function minifier(url, useCustomMinifier, performConcatenation) {
         fs.writeFileSync('./output/newSource.html', newSource);
         console.log('=> Source JS code of given URL saved at ./output/newSource.html');
     } catch (error) {
-        console.log(error);
+        console.error(error);
         return;
     }
 
@@ -59,7 +62,7 @@ async function minifier(url, useCustomMinifier, performConcatenation) {
     try {
         await open('./output/newSource.html');
     } catch (error) {
-        console.log(error);
+        console.error(error);
         return;
     }
 

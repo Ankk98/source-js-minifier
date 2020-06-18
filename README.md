@@ -14,13 +14,15 @@ From npm registry:
 2. `npm install` from repo 
 3. Run Command
 
-`node src/app.js minify <url>` 
+` `  ` node src/app.js minify <url> `  ` ` 
 
-`node src/app.js minify <url> --custom` => To use custom js minifier
+` `  ` node src/app.js minify <url> --custom `  ` ` => To use custom js minifier
 
-`node src/app.js minify <url> --concatenate` => To concatenate all js scripts (including downloaded) into one & attach minified version at the end of html body.
+` `  ` node src/app.js minify <url> --concatenate `  ` ` => To concatenate all js scripts (including downloaded) into one & attach minified version at the end of html body.
 
-`node src/app.js minify <url> --custom --concatenate` => Use both together
+` `  ` node src/app.js minify <url> --css `  ` ` => To perform in-place css minification.
+
+` `  ` node src/app.js minify <url> --custom --concatenate --css `  ` ` => Use all together
 
 Note: 
 
@@ -73,12 +75,12 @@ Extremenly helpful guide on AST manipulation: https://lihautan.com/manipulating-
 Note:
 
 * Concepts Required: Abstract Syntax Trees of HTML & JS, DFS traversal, Visitor Pattern, Synchronous code in NodeJS
-* AST has been extensively used because it best server the purpose.
+* ASTs has been extensively used because it best server the purpose.
 
 ### TODOs
 
-1. Final complete Readme, Documentation
-2. Static type check, Lint, Comments, Best practices/conventions, Logging 
-3. Write tests / unit tests
-4. More optimizations in Custom Minifier
-5. Refactor
+1. Static type check, Lint, Comments, Best practices/conventions, Logging
+2. Write tests / unit tests
+3. More optimizations in Custom Minifier
+4. REFACTOR needed
+5. Relook error-handling & synchronization

@@ -56,7 +56,7 @@ async function fixAssetLinks(source, url) {
                             utils.setAttribute(node, attribute.name, attribute.value);
                         }
                         else if (isRelativePath(attribute.value) === true) {
-                            console.log(`Adding domain to url: ${attribute.value}`);
+                            console.log(`Adding 'https:' to url: ${attribute.value}`);
                             attribute.value = 'https:' + attribute.value;
                             utils.setAttribute(node, attribute.name, attribute.value);
                         }
@@ -69,14 +69,21 @@ async function fixAssetLinks(source, url) {
     return utils.serialize(ast);
 }
 
-async function replaceScriptsWithMinScripts(source, url, useCustomMinifier) {
+async function replaceScriptsWithMinScripts(source, url, useCustomMinifier, doMinifyCSS) {
     // Replace scripts with min scripts
     console.log('Replacing all the scripts present in the webpage & from the src links of scripts...');
 
     source = await fixAssetLinks(source, url);
 
     // Minify & concat css content
-    source = await minifyCSS(source);
+    try {
+        if (doMinifyCSS) {
+            source = await minifyCSS(source);
+        }
+    } catch (error) {
+        console.error(error);
+        return;
+    }
 
     // parse into ast
     const ast = utils.parse(source);
@@ -115,7 +122,7 @@ async function replaceScriptsWithMinScripts(source, url, useCustomMinifier) {
                                     minifiedScript = result['code'];
                                 }
                             } catch (error) {
-                                console.log(error);
+                                console.error(error);
                             }
 
                             // replace
@@ -149,11 +156,11 @@ async function replaceScriptsWithMinScripts(source, url, useCustomMinifier) {
                         currUrl = fixRelativeURL(currUrl);
                         script = await download(currUrl);
                     } catch (error) {
-                        console.log(error);
+                        console.error(error);
                         return;
                     }
 
-                    //minify
+                    // minify
                     console.log('Minifying script ....');
                     try {
                         if (useCustomMinifier) {
@@ -166,7 +173,7 @@ async function replaceScriptsWithMinScripts(source, url, useCustomMinifier) {
                             minifiedScript = result['code'];
                         }
                     } catch (error) {
-                        console.log(error);
+                        console.error(error);
                     }
 
                     // replace
