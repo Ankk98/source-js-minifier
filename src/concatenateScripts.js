@@ -5,7 +5,9 @@ const { isRelativePath } = require('./isRelativePath');
 const { validateURL } = require('./validateURL');
 const { fixRelativeURL } = require('./fixRelativeURL');
 const { customMinifier } = require('./customMinifier');
-const UglifyJS = require('uglify-js');
+const Terser = require('terser');
+const { minifyCSS } = require('./minifyCSS');
+// const asyncLib = require('async');
 
 // For DFS traversal of HTML AST
 function walk(node, callback) {
@@ -73,12 +75,15 @@ async function concatenateScripts(source, url, useCustomMinifier) {
     //Fix asset links
     source = await fixAssetLinks(source, url);
 
+    // Minify CSS
+    source = await minifyCSS(source);
+
     //Extract Scripts
     let arr = await extractScripts(source);
     let html = arr[0];
     let concatenatedScripts = arr[1];
 
-    // Minify
+    // Minify JS
     let minifiedScripts = '';
     try {
         console.log('Minifying & concatenating scripts....');
@@ -91,7 +96,7 @@ async function concatenateScripts(source, url, useCustomMinifier) {
                 }
             }
         } else {
-            let result = UglifyJS.minify(concatenatedScripts);
+            let result = Terser.minify(concatenatedScripts);
             if (result.error) {
                 throw new Error(result.error);
             }
@@ -132,10 +137,11 @@ async function extractScripts(source) {
     const ast = utils.parse(source);
 
     // DFS traversal
-    walk(ast, (node) => {
+    walk(ast, async (node) => {
         if (node.nodeName === 'script') {
 
             if (node.childNodes != []) {
+                // console.log(node);
                 for (let index = 0; index < node.childNodes.length; index++) {
                     const element = node.childNodes[index];
                     if (element &&
@@ -143,42 +149,49 @@ async function extractScripts(source) {
                         element['value']) {
                         // Extract scripts
                         console.log('Extracting a Script....');
-                        concatenatedScripts[`${count}.js`] = element['value'];
+                        let name = `${count}.js`;
+                        concatenatedScripts[name] = element['value'];
                         count++;
                     }
                 }
                 utils.remove(node);
             }
-            if (node.attrs && node.attrs.length > 0) {
+            else if (node.attrs && node.attrs.length > 0) {
                 //For all attributes find src
                 console.log('Checking script tags....');
+
+                let currUrl;
                 for (let index = 0; index < node.attrs.length; index++) {
                     // Get urls
                     const attribute = node.attrs[index];
                     if (attribute['name'] === 'src' &&
                         attribute['value']) {
                         console.log('Extracting a script URL....');
-                        let currUrl = fixRelativeURL(attribute['value']);
-                        urls.push(currUrl);
+                        currUrl = fixRelativeURL(attribute['value']);
+                        break;
+                        // Download content
+                        // urls.push(currUrl);
                     }
                 }
+                if (!currUrl) {
+                    return;
+                }
+
+                try {
+                    currUrl = fixRelativeURL(currUrl);
+                    let name = `${count}.js`;
+                    concatenatedScripts[name] = await download(currUrl);
+                    count++;
+                } catch (error) {
+                    console.log(error);
+                    return;
+                }
+
                 utils.remove(node);
             }
         }
 
     });
-
-    // Download all scripts
-    for (let url of urls) {
-        try {
-            url = fixRelativeURL(url);
-            concatenatedScripts[`${count}.js`] = await download(url);
-            count++;
-        } catch (error) {
-            console.log(error);
-            return;
-        }
-    }
 
     const html = utils.serialize(ast);
     return [html, concatenatedScripts];

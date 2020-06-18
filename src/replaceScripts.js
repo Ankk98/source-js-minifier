@@ -4,8 +4,9 @@ const download = require("./downloadContent");
 const { isRelativePath } = require('./isRelativePath');
 const { validateURL } = require('./validateURL');
 const { fixRelativeURL } = require('./fixRelativeURL');
-const UglifyJS = require("uglify-js");
+const Terser = require("terser");
 const { customMinifier } = require("./customMinifier");
+const { minifyCSS } = require('./minifyCSS');
 
 // To DFS traversal of HTML AST
 function walk(node, callback) {
@@ -33,7 +34,7 @@ function walk(node, callback) {
 
 // Traverse through all asset links and fix them if needed
 async function fixAssetLinks(source, url) {
-
+    console.log('Fixing asset links....');
     const ast = utils.parse(source);
 
     walk(ast, (node) => {
@@ -49,11 +50,14 @@ async function fixAssetLinks(source, url) {
                     if (attribute.name === 'href' ||
                         attribute.name === 'src' ||
                         attribute.name === 'action') {
-                        if (!isRelativePath(attribute.value) && !validateURL(attribute.value)) {
+                        if (!isRelativePath(attribute.value) &&
+                            !validateURL(attribute.value)) {
+                            console.log(`Adding domain to url: ${attribute.value}`);
                             attribute.value = url + attribute.value;
                             utils.setAttribute(node, attribute.name, attribute.value);
                         }
                         else if (isRelativePath(attribute.value) === true) {
+                            console.log(`Adding domain to url: ${attribute.value}`);
                             attribute.value = 'https:' + attribute.value;
                             utils.setAttribute(node, attribute.name, attribute.value);
                         }
@@ -69,11 +73,13 @@ async function fixAssetLinks(source, url) {
 }
 
 async function replaceScriptsWithMinScripts(source, url, useCustomMinifier) {
+    // Replace scripts with min scripts
     console.log('Replacing all the scripts present in the webpage & from the src links of scripts...');
 
     source = await fixAssetLinks(source, url);
 
-    // Replace scripts with min scripts
+    // Minify & concat css content
+    source = await minifyCSS(source);
 
     // parse into ast
     const ast = utils.parse(source);
@@ -97,7 +103,7 @@ async function replaceScriptsWithMinScripts(source, url, useCustomMinifier) {
                             if (useCustomMinifier) {
                                 minifiedScript = await customMinifier(element['value']);
                             } else {
-                                let result = UglifyJS.minify(element['value']);
+                                let result = Terser.minify(element['value']);
                                 if (result.error) {
                                     throw new Error(result.error);
                                 }
@@ -149,7 +155,7 @@ async function replaceScriptsWithMinScripts(source, url, useCustomMinifier) {
                     if (useCustomMinifier) {
                         minifiedScript = await customMinifier(script);
                     } else {
-                        let result = UglifyJS.minify(script);
+                        let result = Terser.minify(script);
                         if (result.error) {
                             throw new Error(result.error);
                         }

@@ -1,5 +1,5 @@
 # Source JS Minifier [WIP]
-A CLI tool to download source code of a webpage from a URL, replace or concatenate its JS scripts with minified scripts & open the resultant webpage in browser. Implemented in NodeJS.
+A CLI tool to download source code of a webpage from a URL, replace or concatenate its JS scripts with minified scripts & minifies the css content in-place & opens the resultant webpage in browser. Implemented in NodeJS.
 [Demonstration Project]
 
 ### Install
@@ -19,7 +19,7 @@ From npm registry:
 
 `node src/app.js minify <url> --concatenate` => To concatenate all scripts (including downloaded) into one & attach minified version at the end of html body
 
-`node src/app.js minify <url> --concatenate` => Use both together
+`node src/app.js minify <url> --custom --concatenate` => Use both together
 
 Note: 
 
@@ -29,7 +29,7 @@ Note:
 
 * Commander: CLI tool
 * Downloading files: node-fetch
-* JS Minifier: uglify-js
+* JS Minifier: terser
 * HTML Parser, manipulator, generator: parse5-utils
 * For cross platform file opening in browser: open
 
@@ -79,3 +79,4 @@ Concepts Required: Abstract Syntax Trees of HTML & JS, DFS traversal, Visitor Pa
 3. Write tests / unit tests
 4. More optimizations in custom Minifier
 5. Cleanup & more refactor
+6. Refactor accordingly
